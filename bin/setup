@@ -1,0 +1,9 @@
+#!/bin/bash -eux
+export PROJECT_PATH="$(cd "$(dirname "${0}")/.." && pwd)"
+
+echo "======> Installing development dependencies"
+gem install bundler --conservative
+bundle check || bundle install --path vendor/bundle
+
+echo "======> Removing old logs and tempfiles"
+rm -rvf $PROJECT_PATH/log/*log $PROJECT_PATH/tmp/*

@@ -1,0 +1,9 @@
+#!/usr/bin/env ruby
+require 'bundler/setup'
+require 'aws-sdk'
+require 'aws-sdk-resources'
+require 'colorize'
+require 'pry'
+
+Pry.config.prompt_name = "#{'Vault/EC2 Integration PoC'.green.bold} $ "
+Pry.start
