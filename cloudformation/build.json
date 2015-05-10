@@ -49,6 +49,10 @@
       "Value": { "Fn::GetAtt": ["akBuild", "SecretAccessKey"] }
     },
 
+    "BuildImagesTable": {
+      "Value": { "Ref": "ddtBuildImages" }
+    },
+
     "BuildInstanceProfileName": {
       "Value": { "Ref": "profileBuild" }
     }
@@ -315,6 +319,24 @@
         "Roles": [
           { "Ref": "roleBuildInstance" }
         ]
+      }
+    },
+
+    "ddtBuildImages": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "AttributeDefinitions": [
+          { "AttributeName": "Name", "AttributeType": "S" },
+          { "AttributeName": "Version", "AttributeType": "N" }
+        ],
+        "KeySchema": [
+          { "AttributeName": "Name", "KeyType": "HASH" },
+          { "AttributeName": "Version", "KeyType": "RANGE" }
+        ],
+        "ProvisionedThroughput": {
+          "ReadCapacityUnits": "1",
+          "WriteCapacityUnits": "1"
+        }
       }
     }
   }

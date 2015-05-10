@@ -17,7 +17,6 @@ class Packer < Thor
   source_root(ROOT_DIR)
 
   class_option :region, type: :string, desc: 'The AWS region', default: ENV['AWS_REGION']
-  class_option :repository, type: :string, desc: 'The DynamoDB table where image metadata is stored', default: ENV['IMAGE_REPOSITORY']
 
   desc 'build IMAGE', 'Build the specified image'
   method_option :providers, type: :array, desc: 'Build only the specified providers', default: %w(amazon-ebs)
@@ -116,7 +115,7 @@ class Packer < Thor
       'RootDeviceType' => output_ami_metadata.root_device_type,
       'SourceAMI'      => source_ami,
       'SourceAMIName'  => source_ami_metadata.name,
-      'Tags'           => output_ami_tags,
+      'Tags'           => output_ami_tags.to_json,
       'Version'        => output_ami_tags['Version'].to_i,
       'Virtualization' => output_ami_metadata.virtualization_type
     }
@@ -223,7 +222,11 @@ class Packer < Thor
   end
 
   def repository
-    @repository ||= dynamodb.table(options[:repository])
+    @repository ||=
+      begin
+        table = build_stack_output('BuildImagesTable')
+        dynamodb.table(table)
+      end
   end
 
   def base_image_ami(name, version = 'latest')
