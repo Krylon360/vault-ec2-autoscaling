@@ -21,9 +21,9 @@
       "type": "amazon-ebs",
       "access_key": "{{user `aws_access_key_id`}}",
       "secret_key": "{{user `aws_secret_access_key`}}",
-      "ami_description": "Vault AWS PoC Ubuntu 14.04 HVM-SSD HA NAT host image {{user `version`}}",
+      "ami_description": "Vault AWS PoC Ubuntu 14.04 HVM-SSD HA NAT/SSH gateway host image {{user `version`}}",
       "ami_groups": "all",
-      "ami_name": "vault-aws-poc-ubuntu-14.04-hvm-ssd-nat-{{user `version`}}",
+      "ami_name": "vault-aws-poc-ubuntu-14.04-hvm-ssd-gateway-{{user `version`}}",
       "associate_public_ip_address": true,
       "instance_type": "m3.large",
       "region": "{{user `region`}}",
@@ -37,7 +37,7 @@
         "Environment": "build"
       },
       "tags": {
-        "Name": "vault-aws-poc-ubuntu-14.04-hvm-ssd-nat-{{user `version`}}",
+        "Name": "vault-aws-poc-ubuntu-14.04-hvm-ssd-gateway-{{user `version`}}",
         "Purpose": "nat",
         "Version": "{{user `version`}}",
         "BaseImage": "{{user `base_image`}}",
