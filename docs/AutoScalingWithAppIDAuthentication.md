@@ -1,1 +1,1 @@
-# Auto Scaling with App ID Authentication
+# Auto scaling with app ID authentication

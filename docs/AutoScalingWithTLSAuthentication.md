@@ -1,1 +1,1 @@
-# Auto Scaling with TLS Authentication
+# Auto scaling with TLS authentication
