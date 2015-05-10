@@ -5,8 +5,9 @@ EC2 and Auto Scaling.
 
 See the
 [docs/](https://github.com/tonyhburns/vault-ec2-autoscaling/tree/master/docs)
-and [issue tracker](https://github.com/tonyhburns/vault-ec2-autoscaling/issues)
-for documentation and ideas.
+directory and [issue
+tracker](https://github.com/tonyhburns/vault-ec2-autoscaling/issues) for
+documentation and ideas.
 
 ## Requirements
 
