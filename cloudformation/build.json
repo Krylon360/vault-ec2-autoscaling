@@ -1,0 +1,321 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Vault AWS Proof of Concept - AMI Build Environment",
+
+  "Parameters": {
+    "Environment": {
+      "Type": "String",
+      "Default": "build"
+    },
+
+    "Stack": {
+      "Type": "String"
+    },
+
+    "VpcCidrBlock": {
+      "Type": "String",
+      "Default": "172.254.0.0/16"
+    },
+
+    "VpcCidrPrefix": {
+      "Type": "String",
+      "Default": "172.16"
+    },
+
+    "BuildSubnetCidrBlock": {
+      "Type": "String",
+      "Default": "0.0/19"
+    }
+  },
+
+  "Outputs": {
+    "VpcId": {
+      "Value": { "Ref": "vpc" }
+    },
+
+    "BuildSubnetId": {
+      "Value": { "Ref": "subnetBuild" }
+    },
+
+    "BuildSecurityGroupId": {
+      "Value": { "Ref": "sgBuild" }
+    },
+
+    "BuildAccessKeyId": {
+      "Value": { "Ref": "akBuild" }
+    },
+
+    "BuildSecretAccessKey": {
+      "Value": { "Fn::GetAtt": ["akBuild", "SecretAccessKey"] }
+    },
+
+    "BuildInstanceProfileName": {
+      "Value": { "Ref": "profileBuild" }
+    }
+  },
+
+  "Resources": {
+    "vpc": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": { "Ref": "VpcCidrBlock" },
+        "EnableDnsSupport": true,
+        "EnableDnsHostnames": true,
+        "Tags": [
+          { "Key": "Name", "Value": { "Fn::Join": ["-", ["vpc", { "Ref": "Stack" }]] } },
+          { "Key": "Stack", "Value": { "Ref": "Stack" } },
+          { "Key": "Environment", "Value": { "Ref": "Environment" } }
+        ]
+      }
+    },
+
+    "igw": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {
+        "Tags": [
+          { "Key": "Name", "Value": { "Fn::Join": ["-", ["igw", { "Ref": "Stack" }]] } },
+          { "Key": "Stack", "Value": { "Ref": "Stack" } },
+          { "Key": "Environment", "Value": { "Ref": "Environment" } }
+        ]
+      }
+    },
+
+    "vpcGateway": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "InternetGatewayId": { "Ref": "igw" },
+        "VpcId": { "Ref": "vpc" }
+      }
+    },
+
+    "subnetBuild": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "AvailabilityZone": { "Fn::Select": ["1", { "Fn::GetAZs": { "Ref": "AWS::Region" } } ] },
+        "VpcId": { "Ref": "vpc" },
+        "CidrBlock": { "Fn::Join": [".", [{ "Ref": "VpcCidrPrefix" }, { "Ref": "BuildSubnetCidrBlock" }]] },
+        "Tags": [
+          { "Key": "Name", "Value": { "Fn::Join": ["-", ["subnet", { "Ref": "Stack" }]] } },
+          { "Key": "Stack", "Value": { "Ref": "Stack" } },
+          { "Key": "Environment", "Value": { "Ref": "Environment" } }
+        ]
+      }
+    },
+
+    "rtBuild": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": { "Ref": "vpc" },
+        "Tags": [
+          { "Key": "Name", "Value": { "Fn::Join": ["-", ["rt", { "Ref": "Stack" }]] } },
+          { "Key": "Stack", "Value": { "Ref": "Stack" } },
+          { "Key": "Environment", "Value": { "Ref": "Environment" } }
+        ]
+      }
+    },
+
+    "routeGatewayBuild": {
+      "Type": "AWS::EC2::Route",
+      "DependsOn": ["vpcGateway"],
+      "Properties": {
+        "RouteTableId": { "Ref": "rtBuild" },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": { "Ref": "igw" }
+      }
+    },
+
+    "srtaBuild": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": { "Ref": "rtBuild" },
+        "SubnetId": { "Ref": "subnetBuild" }
+      }
+    },
+
+    "sgBuild": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Build instance security group",
+        "SecurityGroupIngress": [
+          { "IpProtocol": "tcp", "FromPort": "22", "ToPort": "22", "CidrIp": "0.0.0.0/0" }
+        ],
+        "SecurityGroupEgress": [
+          { "IpProtocol": "tcp", "FromPort": "22", "ToPort": "22", "CidrIp": "192.30.252.0/22" },
+          { "IpProtocol": "tcp", "FromPort": "80", "ToPort": "80", "CidrIp": "0.0.0.0/0" },
+          { "IpProtocol": "tcp", "FromPort": "443", "ToPort": "443", "CidrIp": "0.0.0.0/0" },
+          { "IpProtocol": "tcp", "FromPort": "9418", "ToPort": "9418", "CidrIp": "192.30.252.0/22" },
+          { "IpProtocol": "tcp", "FromPort": "11371", "ToPort": "11371", "CidrIp": "0.0.0.0/0" },
+          { "IpProtocol": "udp", "FromPort": "123", "ToPort": "123", "CidrIp": "0.0.0.0/0" }
+        ],
+        "VpcId": { "Ref": "vpc" },
+        "Tags": [
+          { "Key": "Name", "Value": { "Fn::Join": ["-", ["sg", { "Ref": "Stack" }]] } },
+          { "Key": "Stack", "Value": { "Ref": "Stack" } },
+          { "Key": "Environment", "Value": { "Ref": "Environment" } }
+        ]
+      }
+    },
+
+    "userBuild": {
+      "Type": "AWS::IAM::User",
+      "Properties": {
+        "Path": "/",
+        "Policies": [
+          {
+            "PolicyName": { "Fn::Join": ["-", ["policy-build-user", { "Ref": "Stack" }]] },
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ec2:AttachVolume",
+                    "ec2:AuthorizeSecurityGroupIngress",
+                    "ec2:CopyImage",
+                    "ec2:CreateImage",
+                    "ec2:CreateKeypair",
+                    "ec2:CreateSnapshot",
+                    "ec2:CreateTags",
+                    "ec2:CreateVolume",
+                    "ec2:DeleteKeypair",
+                    "ec2:DeleteSnapshot",
+                    "ec2:DeleteVolume",
+                    "ec2:DescribeImages",
+                    "ec2:DescribeInstances",
+                    "ec2:DescribeSnapshots",
+                    "ec2:DescribeVolumes",
+                    "ec2:DetachVolume",
+                    "ec2:ModifyImageAttribute",
+                    "ec2:RegisterImage"
+                  ],
+                  "Resource": "*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ec2:RunInstances"
+                  ],
+                  "Resource": [
+                    { "Fn::Join": [":", ["arn:aws:ec2", { "Ref": "AWS::Region" }, "", "image/ami-*"]] },
+                    { "Fn::Join": [":", ["arn:aws:ec2", { "Ref": "AWS::Region" }, { "Ref": "AWS::AccountId" }, "instance/*"]] },
+                    { "Fn::Join": [":", ["arn:aws:ec2", { "Ref": "AWS::Region" }, { "Ref": "AWS::AccountId" }, { "Fn::Join": ["/", ["subnet", { "Ref": "subnetBuild" }]] }]] },
+                    { "Fn::Join": [":", ["arn:aws:ec2", { "Ref": "AWS::Region" }, { "Ref": "AWS::AccountId" }, "network-interface/*"]] },
+                    { "Fn::Join": [":", ["arn:aws:ec2", { "Ref": "AWS::Region" }, { "Ref": "AWS::AccountId" }, "volume/*"]] },
+                    { "Fn::Join": [":", ["arn:aws:ec2", { "Ref": "AWS::Region" }, { "Ref": "AWS::AccountId" }, "key-pair/build-*"]] },
+                    { "Fn::Join": [":", ["arn:aws:ec2", { "Ref": "AWS::Region" }, { "Ref": "AWS::AccountId" }, { "Fn::Join": ["/", ["security-group", { "Ref": "sgBuild" }]] }]] }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ec2:StopInstances",
+                    "ec2:TerminateInstances"
+                  ],
+                  "Resource": { "Fn::Join": [":", ["arn:aws:ec2", { "Ref": "AWS::Region" }, { "Ref": "AWS::AccountId" }, "instance/*"]] },
+                  "Condition": {
+                    "StringEquals": {
+                      "ec2:AvailabilityZone": { "Fn::Select": ["1", { "Fn::GetAZs": { "Ref": "AWS::Region" } } ] },
+                      "ec2:Region": { "Ref": "AWS::Region" },
+                      "ec2:ResourceTag/Environment": { "Ref": "Environment" }
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": "iam:PassRole",
+                  "Resource": { "Fn::Join": [":", ["arn:aws:iam", "", { "Ref": "AWS::AccountId" }, { "Fn::Join": ["/", ["role", { "Ref": "roleBuildInstance" }]] }]] }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+
+    "akBuild": {
+      "Type": "AWS::IAM::AccessKey",
+      "Properties": {
+        "UserName": { "Ref": "userBuild" },
+        "Status": "Active"
+      }
+    },
+
+    "roleBuildInstance": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version" : "2012-10-17",
+          "Statement": [{
+            "Effect": "Allow",
+            "Principal": {
+              "Service": ["ec2.amazonaws.com"]
+            },
+            "Action": [ "sts:AssumeRole" ]
+          }]
+        },
+        "Path": "/"
+      }
+    },
+
+    "policyBuildInstance": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": { "Fn::Join": ["-", ["policy-build-instance", { "Ref": "Stack" }]] },
+        "PolicyDocument": {
+          "Version" : "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2:CreateVolume",
+                "ec2:DeleteVolume",
+                "ec2:DescribeRegions",
+                "ec2:DescribeVolumeAttribute",
+                "ec2:DescribeVolumeStatus",
+                "ec2:DescribeVolumes",
+                "ec2:ModifyVolumeAttribute"
+              ],
+              "Resource": "*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "ec2:AttachVolume",
+                "ec2:CreateTags",
+                "ec2:DescribeInstances",
+                "ec2:DetachVolume",
+                "ec2:GetConsoleOutput"
+              ],
+              "Resource": [
+                { "Fn::Join": [":", ["arn:aws:ec2", { "Ref": "AWS::Region" }, "", "image/ami-*"]] },
+                { "Fn::Join": [":", ["arn:aws:ec2", { "Ref": "AWS::Region" }, { "Ref": "AWS::AccountId" }, "instance/*"]] },
+                { "Fn::Join": [":", ["arn:aws:ec2", { "Ref": "AWS::Region" }, { "Ref": "AWS::AccountId" }, { "Fn::Join": ["/", ["subnet", { "Ref": "subnetBuild" }]] }]] },
+                { "Fn::Join": [":", ["arn:aws:ec2", { "Ref": "AWS::Region" }, { "Ref": "AWS::AccountId" }, "network-interface/*"]] },
+                { "Fn::Join": [":", ["arn:aws:ec2", { "Ref": "AWS::Region" }, { "Ref": "AWS::AccountId" }, "volume/*"]] },
+                { "Fn::Join": [":", ["arn:aws:ec2", { "Ref": "AWS::Region" }, { "Ref": "AWS::AccountId" }, "key-pair/build-*"]] },
+                { "Fn::Join": [":", ["arn:aws:ec2", { "Ref": "AWS::Region" }, { "Ref": "AWS::AccountId" }, { "Fn::Join": ["/", ["security-group", { "Ref": "sgBuild" }]] }]] }
+              ],
+              "Condition": {
+                "StringEqualsIfExists": {
+                  "ec2:Region": { "Ref": "AWS::Region" },
+                  "ec2:ResourceTag/Environment": { "Ref": "Environment" }
+                }
+              }
+            }
+          ]
+        },
+        "Roles": [{ "Ref": "roleBuildInstance" }]
+      }
+    },
+
+    "profileBuild": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [
+          { "Ref": "roleBuildInstance" }
+        ]
+      }
+    }
+  }
+}

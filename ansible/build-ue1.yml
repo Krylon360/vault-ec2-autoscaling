@@ -1,0 +1,10 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    stack: vault-aws-poc-build-ue1
+    vpc_cidr_block: 172.254.0.0/16
+    vpc_cidr_prefix: "172.254"
+  roles:
+    - cfn-build

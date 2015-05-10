@@ -1,0 +1,15 @@
+---
+- name: Create AMI build environment stack via CloudFormation
+  cloudformation:
+    state: present
+    stack_name: "{{ stack }}"
+    template: "{{ playbook_dir }}/../cloudformation/build.json"
+    template_parameters:
+      Environment: "{{ stack_env }}"
+      Stack: "{{ stack }}"
+      VpcCidrBlock: "{{ vpc_cidr_block }}"
+      VpcCidrPrefix: "{{ vpc_cidr_prefix }}"
+    tags:
+      Name: stack-{{ stack }}
+      Environment: "{{ stack_env }}"
+      Stack: "{{ stack }}"
