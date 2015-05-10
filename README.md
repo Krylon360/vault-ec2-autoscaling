@@ -20,8 +20,8 @@ documentation and ideas.
 ## Warning about AWS charges
 
 Running the proof of concept in this repository will not entirely fall under the
-[aws free tier](http://aws.amazon.com/free/). **You are responsible for all
-charges incurred.**
+[AWS free usage tier](http://aws.amazon.com/free/). **You are responsible for
+all charges incurred.**
 
 ## Getting started
 
